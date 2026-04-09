@@ -1,0 +1,283 @@
+% Diagram Descriptions for ESP32 Indoor Positioning System
+% This file contains detailed descriptions for all diagrams in the report
+
+\section*{Diagram Reference Guide}
+
+\subsection*{1. System Architecture Diagram (system-architecture.tex)}
+\textbf{Purpose:} Illustrates the three-phase evolution of the ESP32 IPS architecture.
+
+\textbf{Description:}
+This diagram shows the progressive development of the system through three distinct phases:
+\begin{itemize}
+    \item \textbf{Phase 1 - Hands-Free (Single Target):} Demonstrates unidirectional communication where a single target node broadcasts to four anchor nodes, which forward RSSI measurements to a gateway, ultimately sending aggregated data to a PC for logging and analysis.
+    
+    \item \textbf{Phase 2 - Multi-Target Sequential:} Shows time-slotted operation where multiple targets (A, B, C) broadcast sequentially in designated time windows (0-100ms, 100-200ms, 200-300ms) to prevent signal collision. Anchors tag RSSI data with target IDs before forwarding to the gateway.
+    
+    \item \textbf{Phase 3 - All-Nodes Mesh:} Depicts a fully distributed mesh network where all nodes perform bidirectional pairwise RSSI measurements, creating an adjacency map that enables relative positioning without fixed anchor infrastructure.
+\end{itemize}
+
+\textbf{Usage:} Include in Chapter 4 (Proposed Solution) to explain system architecture evolution.
+
+\textbf{LaTeX Integration:}
+\begin{verbatim}
+\begin{figure}[H]
+    \centering
+    \input{figure/system-architecture.tex}
+    \caption{Three-Phase System Architecture Evolution}
+    \label{fig:system-architecture}
+\end{figure}
+\end{verbatim}
+
+\subsection*{2. Data Communication Flow Diagram (data-communication-flow.tex)}
+\textbf{Purpose:} Illustrates the sequence of data communication between system components.
+
+\textbf{Description:}
+This sequence diagram shows the temporal flow of data through the system:
+\begin{enumerate}
+    \item Target node broadcasts ESP-NOW packets containing target\_id, timestamp, and message
+    \item All anchor nodes (A1-A4) receive the broadcast simultaneously
+    \item Each anchor records RSSI value and timestamp
+    \item Anchors forward anchor\_data\_t structures (anchor\_id, rssi, timestamp) to gateway
+    \item Gateway aggregates data from all anchors
+    \item Gateway sends complete dataset (X, Y, RSSI\_A1, RSSI\_A2, RSSI\_A3, RSSI\_A4) to PC
+\end{enumerate}
+
+\textbf{Key Data Structures:}
+\begin{itemize}
+    \item \texttt{target\_packet\_t}: Broadcast packet from target
+    \item \texttt{anchor\_data\_t}: RSSI measurement from anchor
+    \item Dataset format: CSV with coordinates and RSSI values
+\end{itemize}
+
+\textbf{Usage:} Include in Chapter 4 to explain data flow and packet structures.
+
+\subsection*{3. Hardware Layout Diagram (hardware-layout.tex)}
+\textbf{Purpose:} Shows the physical testbed configuration with coordinate system.
+
+\textbf{Description:}
+This diagram presents the 70×50 cm testbed layout with:
+\begin{itemize}
+    \item Four anchor nodes at corners: A1(0,0), A2(70,0), A3(0,50), A4(70,50)
+    \item Cartesian coordinate system with 10 cm grid spacing
+    \item Sample target positions marked on the grid
+    \item Dashed lines showing signal paths from targets to anchors
+    \item Dimensional annotations for testbed size
+    \item Legend distinguishing anchor and target nodes
+\end{itemize}
+
+\textbf{Technical Specifications:}
+\begin{itemize}
+    \item Testbed dimensions: 70 cm × 50 cm
+    \item Grid spacing: 10 cm
+    \item Antenna height: 10 cm (consistent across all nodes)
+    \item Coordinate origin: Bottom-left corner (A1)
+\end{itemize}
+
+\textbf{Usage:} Include in Chapter 4 to show experimental setup and Chapter 5 for calibration reference.
+
+\subsection*{4. Data Flow Diagram - Level 0 (dfd-level0.tex)}
+\textbf{Purpose:} Provides context-level view of the entire system and its external entities.
+
+\textbf{Description:}
+This context diagram shows the ESP32 IPS System as a single process interacting with three external entities:
+\begin{itemize}
+    \item \textbf{System Administrator:} Provides configuration parameters and receives system status reports
+    \item \textbf{Target Nodes:} Send broadcast signals and receive position estimates
+    \item \textbf{Data Analyst:} Receives RSSI datasets and position data, provides calibration constants
+\end{itemize}
+
+\textbf{Data Flows:}
+\begin{itemize}
+    \item Configuration Parameters → System
+    \item System Status Reports → Administrator
+    \item Broadcast Signals → System
+    \item Position Estimates → Target Nodes
+    \item RSSI Dataset/Position Data → Data Analyst
+    \item Calibration Constants → System
+\end{itemize}
+
+\textbf{Usage:} Include in Chapter 4 to provide high-level system overview.
+
+\subsection*{5. Data Flow Diagram - Level 1 (dfd-level1.tex)}
+\textbf{Purpose:} Detailed decomposition of system processes and data stores.
+
+\textbf{Description:}
+This diagram expands the Level 0 context into five detailed processes:
+
+\textbf{Processes:}
+\begin{enumerate}
+    \item \textbf{1.0 Broadcast Management:} Manages time-slot allocation and ESP-NOW packet transmission
+    \item \textbf{2.0 RSSI Measurement:} Anchor nodes receive broadcasts and measure signal strength
+    \item \textbf{3.0 Data Aggregation:} Gateway collects and formats RSSI data from all anchors
+    \item \textbf{4.0 Position Estimation:} Applies ML model or trilateration to estimate coordinates
+    \item \textbf{5.0 Calibration Processing:} Derives path-loss constants from controlled measurements
+\end{enumerate}
+
+\textbf{Data Stores:}
+\begin{itemize}
+    \item \textbf{D1 - RSSI Database:} Stores raw and aggregated RSSI measurements
+    \item \textbf{D2 - Position Records:} Contains estimated X,Y coordinates with timestamps
+    \item \textbf{D3 - Config Parameters:} Holds system settings and calibration constants
+\end{itemize}
+
+\textbf{Usage:} Include in Chapter 4 for detailed system design documentation.
+
+\subsection*{6. Entity-Relationship Diagram (er-diagram.tex)}
+\textbf{Purpose:} Defines the database schema for storing system data.
+
+\textbf{Description:}
+This ER diagram shows five main entities and their relationships:
+
+\textbf{Entities:}
+\begin{itemize}
+    \item \textbf{NODE:} ESP32 devices (targets, anchors, gateway) with unique IDs, MAC addresses, and physical locations
+    \item \textbf{MEASUREMENT:} Individual RSSI measurements with timestamps and packet IDs
+    \item \textbf{POSITION:} Estimated X,Y coordinates with confidence scores and estimation method
+    \item \textbf{CALIBRATION:} Path-loss model parameters (A, n) with calibration dates
+    \item \textbf{SESSION:} Experimental sessions grouping measurements by phase and time period
+\end{itemize}
+
+\textbf{Relationships:}
+\begin{itemize}
+    \item One NODE transmits many MEASUREMENTs (1:N)
+    \item Many MEASUREMENTs generate one POSITION (N:1)
+    \item One CALIBRATION is used by many NODEs (1:N)
+    \item One SESSION contains many MEASUREMENTs (1:N)
+\end{itemize}
+
+\textbf{Usage:} Include in Chapter 4 or Chapter 5 to document data storage structure.
+
+\subsection*{7. Flowchart - Calibration Protocol (flowchart-calibration.tex)}
+\textbf{Purpose:} Details the step-by-step calibration procedure.
+
+\textbf{Description:}
+This flowchart illustrates the calibration process for deriving path-loss constants:
+
+\textbf{Process Steps:}
+\begin{enumerate}
+    \item Place single target at known position (X, Y)
+    \item Initialize sample counter to 0
+    \item Loop: Collect 50-100 RSSI samples per position
+    \item Target broadcasts ESP-NOW packets
+    \item All anchors measure RSSI values
+    \item Record X, Y, RSSI\_A1, RSSI\_A2, RSSI\_A3, RSSI\_A4
+    \item Move target to next grid position
+    \item Repeat until all positions covered
+    \item Aggregate all samples into dataset
+    \item Calculate average RSSI for each position
+    \item Derive path-loss constants A and n using regression
+    \item Output calibration parameters
+\end{enumerate}
+
+\textbf{Key Parameters:}
+\begin{itemize}
+    \item Sample size: 50-100 per position
+    \item Grid spacing: 10 cm
+    \item Broadcast interval: 100 ms
+    \item Static target (no motion during sampling)
+\end{itemize}
+
+\textbf{Path-Loss Model:} $d = 10^{(A - RSSI)/(10n)}$
+
+\textbf{Usage:} Include in Chapter 5 (Experimental Results) to document calibration methodology.
+
+\subsection*{8. Flowchart - Position Estimation (flowchart-position-estimation.tex)}
+\textbf{Purpose:} Shows the real-time position estimation algorithm.
+
+\textbf{Description:}
+This flowchart details the position estimation process with two alternative methods:
+
+\textbf{Main Process:}
+\begin{enumerate}
+    \item Input: RSSI values from all anchors
+    \item Apply RSSI filtering (moving average)
+    \item Validate RSSI values
+    \item Select estimation method (ML or Trilateration)
+\end{enumerate}
+
+\textbf{ML Path:}
+\begin{enumerate}
+    \item Normalize RSSI using StandardScaler
+    \item Apply MLPRegressor model (64, 64 hidden layers)
+    \item Output X, Y coordinates
+\end{enumerate}
+
+\textbf{Trilateration Path:}
+\begin{enumerate}
+    \item Convert RSSI to distance using calibrated A, n parameters
+    \item Check if distance values are reasonable
+    \item Calculate position using trilateration algorithm
+    \item Output X, Y coordinates
+\end{enumerate}
+
+\textbf{Post-Processing:}
+\begin{enumerate}
+    \item Validate position within testbed bounds (0-70 cm, 0-50 cm)
+    \item Apply boundary correction if needed
+    \item Output final position with timestamp
+    \item Store in position database
+\end{enumerate}
+
+\textbf{Usage:} Include in Chapter 4 or Chapter 5 to explain position estimation algorithms.
+
+\subsection*{9. Flowchart - System Operation (flowchart-system-operation.tex)}
+\textbf{Purpose:} Illustrates the complete system operation for Phase 2 (Multi-Target).
+
+\textbf{Description:}
+This flowchart shows the operational flow for multi-target sequential positioning:
+
+\textbf{Initialization:}
+\begin{enumerate}
+    \item Initialize ESP-NOW protocol
+    \item Load configuration (time slots, node IDs)
+    \item Synchronize all nodes to common time base
+\end{enumerate}
+
+\textbf{Main Operation Loop:}
+\begin{enumerate}
+    \item Check current time slot
+    \item If target's time slot: Broadcast ESP-NOW packet, wait for next slot
+    \item If anchor node: Receive broadcast, measure RSSI, send data to gateway
+    \item Gateway: Aggregate data from all anchors
+    \item Wait for all anchor responses (with timeout)
+    \item Estimate position using selected algorithm
+    \item Output position data to PC/Logger
+    \item Store in database
+    \item Repeat
+\end{enumerate}
+
+\textbf{Time Slot Configuration:}
+\begin{itemize}
+    \item Target A: 0-100 ms
+    \item Target B: 100-200 ms
+    \item Target C: 200-300 ms
+    \item Cycle repeats every 300 ms
+\end{itemize}
+
+\textbf{Usage:} Include in Chapter 4 to explain system operation and timing.
+
+\subsection*{Integration Guidelines}
+
+\textbf{Chapter 4 - Proposed Solution:}
+\begin{itemize}
+    \item System Architecture Diagram (mandatory)
+    \item Data Communication Flow Diagram (mandatory)
+    \item Hardware Layout Diagram (mandatory)
+    \item DFD Level 0 and Level 1
+    \item ER Diagram
+    \item Flowchart - System Operation
+\end{itemize}
+
+\textbf{Chapter 5 - Experimental Results:}
+\begin{itemize}
+    \item Flowchart - Calibration Protocol (mandatory)
+    \item Flowchart - Position Estimation
+    \item Hardware Layout Diagram (reference)
+\end{itemize}
+
+\textbf{LaTeX Tips:}
+\begin{itemize}
+    \item Use \texttt{[H]} placement for exact positioning
+    \item Scale diagrams if needed: \texttt{\textbackslash scalebox\{0.8\}\{\textbackslash input\{...\}\}}
+    \item Rotate large diagrams: \texttt{\textbackslash rotatebox\{90\}\{\textbackslash input\{...\}\}}
+    \item Always include captions and labels for cross-referencing

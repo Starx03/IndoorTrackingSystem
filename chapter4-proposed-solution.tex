@@ -1,0 +1,358 @@
+\chapter{Proposed Methodology}
+\label{Proposed_Methodology}
+
+This chapter presents the comprehensive methodology for the LD2450 mmWave Indoor Positioning System, detailing the three-phase architectural evolution, hardware configuration, continuous UART data parsing protocols, and network synchronization mechanisms. The proposed solution emphasizes a systematic progression from single-node boundary validation to multi-node spatial coverage, culminating in a fully aggregated, real-time centralized tracking matrix.
+
+\section{System Architectural Phases}
+\label{sec:system-phases}
+
+The IPS employs a phased architectural approach that ensures incremental complexity management. Each phase builds upon the previous one while maintaining the core ESP32 parsing algorithms and data structures.
+
+\subsection{Phase 1: Single-Node Boundary Validation}
+\label{subsec:phase1}
+
+Phase 1 establishes the foundational data ingestion and environmental modeling framework. In this configuration, a single LD2450 mmWave sensor is deployed facing a controlled perimeter. The sensor actively transmits FMCW chirps and natively computes the Cartesian (X, Y) coordinates of any dynamic target traversing its field of view. 
+
+The communication flow is strictly unidirectional: the LD2450 outputs a continuous hexadecimal UART byte stream to its host ESP32 microcontroller. The ESP32 parses these frames, extracts the target IDs, coordinates, and velocity metrics, and forwards this data over a local Wi-Fi connection to a PC for logging.
+
+This phase serves multiple critical purposes:
+\begin{itemize}
+    \item \textbf{Buffer Stability:} Tuning the ESP32's asynchronous serial buffer to parse the 256,000 bps UART stream without dropping frames.
+    \item \textbf{Digital Bounding:} Establishing mathematically strict X and Y coordinate limits within the ESP32 code to filter out phantom reflections bouncing off exterior walls.
+    \item \textbf{Baseline Ground Truth:} Comparing the LD2450's reported coordinates against measured, physical ground-truth markers on the floor.
+\end{itemize}
+
+The static positioning of the radar node ensures high reproducibility of results. Expected positioning precision in this phase is $\pm$5-10 cm within the established visual field.
+
+\subsection{Phase 2: Multi-Node Spatial Coverage}
+\label{subsec:phase2}
+
+Phase 2 extends the system to support a massive spatial footprint by resolving the line-of-sight occlusion vulnerability intrinsic to mmWave technology. This approach addresses the fundamental challenge of "shadowing," where a target becomes invisible to the radar because they stepped behind a dense pillar or another human.
+
+The Multi-Node architecture deploys multiple LD2450 and ESP32 pairs (sensor clusters) positioned at perpendicular or opposing angles within the same room. Rather than communicating with each other, they operate to overlap their geometrical fields of view:
+\begin{itemize}
+    \item \textbf{Node A} monitors the East-to-West traversal axis.
+    \item \textbf{Node B} monitors the North-to-South traversal axis.
+    \item Both nodes independently parse their UART radars.
+\end{itemize}
+
+Key advantages of this spatial coverage include:
+\begin{itemize}
+    \item \textbf{Occlusion Resilience:} If Node A's line-of-sight is blocked, Node B seamlessly maintains the coordinate lock.
+    \item \textbf{Extended Range:} Linking sensor fields allows tracking across massive commercial floors.
+    \item \textbf{Confidence Boosting:} If both nodes detect the same target, the overlapping coordinate vectors serve to mathematically reinforce the accuracy of the reading.
+\end{itemize}
+
+\subsection{Phase 3: Central Aggregation and Visualization}
+\label{subsec:phase3}
+
+Phase 3 represents the most advanced configuration, transforming disparate node clusters into a fully synchronized positioning ecosystem. In this phase, every ESP32 node continuously packages its parsed mmWave data and transmits it wirelessly to a Central Gateway.
+
+The Gateway aggregates these overlapping measurements and applies backend processing:
+\begin{itemize}
+    \item \textbf{Coordinate Transformation:} Translating the relative local (X, Y) coordinates of each sensor node into a global room map.
+    \item \textbf{Deduplication Algorithm:} Recognizing when two sensors are tracking the same individual and fusing those two datasets into a single, highly confident trajectory point.
+    \item \textbf{Real-Time Rendering:} Streaming the finalized geometrical matrix to a web-based dashboard or external application.
+\end{itemize}
+
+\subsection{Phase Compatibility and Evolution}
+\label{subsec:phase-compatibility}
+
+A critical design principle is maintaining backwards compatibility across all three phases. The same UART ingestion loops, framing logic, and standardized data structures are used throughout. Nodes can scale from isolated testing environments to networked commercial systems purely through software scaling.
+
+Figure~\ref{fig:system-architecture} illustrates the three-phase architectural evolution and the communication patterns in each configuration.
+
+\section{Hardware Setup and System Layout}
+\label{sec:hardware-setup}
+
+The IPS testbed employs commercially available components configured in a controlled indoor environment to ensure measurement reproducibility.
+
+\subsection{Component Specification}
+\label{subsec:components}
+
+The system comprises the following hardware components:
+
+\begin{itemize}
+    \item \textbf{ESP32 Microcontrollers:} Development boards serving as host processors and network transceivers. Each board features a dual-core processor uniquely suited to dedicating one core entirely to UART Serial parsing, and the second core to Wi-Fi/ESP-NOW communication.
+    
+    \item \textbf{LD2450 mmWave Radar:} High-frequency 24GHz radar modules. They connect to the ESP32 via standard TX and RX pins. No external analog-to-digital converters are required since the module features internal DSP.
+    
+    \item \textbf{Power Supply:} Individual 5V power banks for each Node to eliminate ground loop AC interference and facilitate completely untethered wall-mounting.
+    
+    \item \textbf{Testbed Layout:} A physical floor space measuring roughly 5×5 meters, pre-marked with grid intersections using measuring tape, enabling manual comparison against the radar's digital output.
+\end{itemize}
+
+\subsection{Testbed Layout and Coordinate System}
+\label{subsec:testbed-layout}
+
+The testbed employs a Cartesian coordinate system with the origin situated exactly at the primary LD2450 sensor's face. 
+
+The sensor placement leverages the physical geometry of the module:
+\begin{itemize}
+    \item \textbf{X-Axis:} Measures the lateral displacement (left and right of the sensor face).
+    \item \textbf{Y-Axis:} Measures the radial distance (directly forward from the sensor).
+\end{itemize}
+
+In multi-node Phase 2 setups, secondary sensors require a spatial offset calculation in the central gateway to correctly transpose their localized (X, Y) relative coordinates into the absolute global grid.
+
+Figure~\ref{fig:hardware-layout} illustrates the complete testbed configuration with anchor positions, coordinate system, and sample target placements.
+
+\subsection{Antenna Height and Environmental Considerations}
+\label{subsec:antenna-height}
+
+The LD2450 sensors are mounted typically at chest height (approximately 1.2 to 1.5 meters above the floor), angled slightly downwards.
+\begin{itemize}
+    \item \textbf{Optimal Human Reflection:} Chest-height placement guarantees the radar waves strike the densest mass of the human torso.
+    \item \textbf{Ground Reflection Mitigation:} Angling prevents multipath bouncing off polished floors.
+\end{itemize}
+
+\subsection{Node Role Assignment}
+\label{subsec:node-roles}
+
+Each hardware cluster is assigned a specific role through software configuration:
+
+\begin{itemize}
+    \item \textbf{Sensor Nodes:} The ESP32 + LD2450 pairs mounted on the walls. They actively parse the radar, filter boundaries, and transmit JSON-formatted data.
+    \item \textbf{Gateway Node:} A central PC or a highly powerful microcomputer (like a Raspberry Pi) operating an MQTT broker or ESP-NOW receiver. It aggregates the networks streams.
+\end{itemize}
+
+\section{Data Communication Flow}
+\label{sec:data-communication}
+
+The system employs a high-speed telemetric pipeline spanning from raw electromagnetic waves to network-level packets.
+
+\subsection{UART parsing Protocol}
+\label{subsec:espnow-protocol}
+
+The fundamental bottleneck resolved in Phase 1 is the UART protocol. The LD2450 transmits data at 256000 bps. The ESP32 utilizes a specialized \texttt{HardwareSerial} library paired with a 256-byte circular buffer to continuously ingest this without blocking the main program execution.
+
+\subsection{Communication Sequence in Phase 1}
+\label{subsec:comm-sequence-phase1}
+
+The sequence follows:
+\begin{enumerate}
+    \item \textbf{Target Movement:} A human target moves. The FMCW chirps reflect back to the LD2450.
+    \item \textbf{DSP Execution:} The LD2450 internally calculates the ToF and AoA, deriving precise Cartesian targets.
+    \item \textbf{Serial Output:} The LD2450 packages the target IDs, X, and Y values into standard hexadecimal frames starting with header bytes \texttt{0xAA 0xFF} and sends them via UART.
+    \item \textbf{Microcontroller Ingestion:} The ESP32 scans the serial buffer looking for the specific header bytes. Upon finding them, it reads the exact next block of frame bytes.
+    \item \textbf{Coordinate Bounding:} The ESP32 checks if the extracted X and Y parameters fall inside the programmed room dimensions. If they do not, the packet is instantly discarded as a ghost reflection.
+    \item \textbf{Network Transmission:} Validated coordinate structs are transmitted to the Gateway.
+\end{enumerate}
+
+Figure~\ref{fig:data-communication-flow} illustrates the complete communication sequence with timing relationships and data structures at each stage.
+
+\subsection{Broadcast Interval and Sampling Strategy}
+\label{subsec:broadcast-interval}
+
+The LD2450 updates coordinate arrays several times per second. By pushing data only when a coordinate visibly changes by more than 5cm, we significantly reduce wireless network congestion.
+
+\subsection{Error Handling and Reliability Mechanisms}
+\label{subsec:error-handling}
+
+\begin{itemize}
+    \item \textbf{Frame Misalignment Detection:} If the footer bytes \texttt{0x55 0xCC} are not found exactly where expected, the frame is corrupted. The ESP32 clears the buffer and waits for the next header.
+    \item \textbf{Timeout Triggers:} If the sensor stops detecting a historically tracked target for more than 500ms, the ESP32 automatically transmits a null-status packet indicating that the target has exited the perimeter.
+\end{itemize}
+
+\section{Data Packet Structures}
+\label{sec:packet-structures}
+
+The ESP32 firmware utilizes specific C-language \texttt{structs} to cast the raw bytes received from the radar into actionable human-readable decimal integers.
+
+\subsection{Target Coordinate Struct}
+\label{subsec:target-packet}
+
+The ESP32 breaks down the data frame for a single tracked human into the following structure:
+
+\begin{verbatim}
+typedef struct {
+    uint8_t target_id;      // Unique radar identifier (0-2)
+    int16_t x_pos;          // Lateral distance in mm
+    int16_t y_pos;          // Radial distance in mm
+    uint16_t velocity;      // Movement speed in cm/s
+    uint16_t resolution;    // Sensor confidence metric
+} target_data_t;
+\end{verbatim}
+
+\textbf{Field Descriptions:}
+\begin{itemize}
+    \item \textbf{target\_id:} The LD2450 assigns persistent IDs sequentially as targets enter the zone.
+    \item \textbf{x\_pos \& y\_pos:} These 16-bit signed integers contain the exact physical distance natively computed by the DSP.
+    \item \textbf{velocity:} Facilitates predictive smoothing algorithms on the backend.
+\end{itemize}
+
+\subsection{Network Telemetry Packet}
+\label{subsec:anchor-packet}
+
+For Phase 2 multi-node operation, the ESP32 attaches its own ID before broadcasting the data:
+
+\begin{verbatim}
+typedef struct {
+    uint8_t sensor_node;    // ESP32 Node identifier (e.g., Node 1)
+    uint32_t timestamp;     // System up-time
+    target_data_t targets[3]; // Array holding up to 3 tracked bodies
+} network_packet_t;
+\end{verbatim}
+
+\subsection{Dataset Format}
+\label{subsec:dataset-format}
+
+The Gateway software aggregates these network packets and outputs them as a persistent CSV file utilized for precision analysis:
+
+\begin{table}[H]
+\centering
+\caption{Dataset Format Structure (Single Node)}
+\label{tab:dataset-format}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Timestamp} & \textbf{Node ID} & \textbf{Target ID} & \textbf{X (mm)} & \textbf{Y (mm)} \\
+\hline
+10234 & 1 & 0 & -240 & 1500 \\
+10280 & 1 & 0 & -220 & 1515 \\
+10310 & 1 & 0 & -195 & 1540 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Extended Dataset Format for Multi-Target}
+\label{subsec:extended-dataset}
+
+In crowded environments, the radar fully populates the array, tracking distinct entities concurrently:
+
+\begin{table}[H]
+\centering
+\caption{Extended Dataset Format for Multi-Target Scenarios}
+\label{tab:extended-dataset-format}
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+\textbf{Timestamp} & \textbf{Tgt0\_X} & \textbf{Tgt0\_Y} & \textbf{Tgt1\_X} & \textbf{Tgt1\_Y} & \textbf{Tgt2\_X} & \textbf{Tgt2\_Y} \\
+\hline
+14002 & -500 & 1200 & 850 & 2000 & 0 & 0 \\
+14050 & -510 & 1220 & 800 & 2010 & 0 & 0 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Synchronization and Collision Management}
+\label{sec:synchronization}
+
+As the network scales, the central gateway faces thousands of network packets per second. Efficient congestion and collision management algorithms must be implemented.
+
+\subsection{Wireless Conflict Protocols}
+\label{subsec:time-slot-protocol}
+
+Unlike RSSI setups which experienced catastrophic interference when two transmitters overlapped, sending mapped telemetry data packets is extremely resilient. The network relies strictly on standard Wi-Fi (CSMA/CA) Carrier-Sense Multiple Access collision avoidance or ESP-NOW sequential acknowledgement. 
+
+\subsubsection{ESP-NOW Interval Control}
+\label{subsubsec:time-slot-allocation}
+
+Nodes are programmed to accumulate UART coordinates over a 50ms window before transmitting a singular bulk mesh packet. This drastically reduces overall wireless congestion, guaranteeing that transmission intervals do not overwhelm the aggregator.
+
+\subsection{Data Deduplication (Sensor Fusion)}
+\label{subsec:unique-node-id}
+
+The true collision challenge shifts from the wireless spectrum to the Data Layer. If Node A and Node B both see the exact same person, the Gateway receives two disparate coordinate vectors representing a single human.
+
+\subsubsection{Threshold Matching}
+\label{subsubsec:interval-control}
+
+The Gateway algorithm employs Euclidean distance thresholds. If Node A reports a target at (Global X=50, Y=100) and Node B reports a target at (Global X=48, Y=105), the algorithm determines the proximity delta is under 15cm. It mathematically fuses these two entries into a single definitive coordinate point, thereby eliminating "ghost tracking clones" created by overlapping sensor fields.
+
+\subsection{Frame Buffer Checksum Alignment}
+\label{subsec:mesh-synchronization}
+
+Because serial UART relies purely on timed intervals rather than a separate clock wire, buffer misalignment is highly probable. The ESP32 continuously runs a cyclic redundancy or header-check algorithm against every parsed frame. If the frame deviates by even a solitary byte, the entire batch is wiped. This guarantees that absolutely no corrupted coordinate geometry ever enters the network pipeline.
+
+\section{System Diagrams and Visual Representations}
+\label{sec:system-diagrams}
+
+This section presents comprehensive visual representations of the ESP32 IPS architecture, data flows, and operational processes. These diagrams provide intuitive understanding of system components, their interactions, and the evolution across the operational phases.
+
+\subsection{System Architecture Diagram}
+\label{subsec:system-architecture-diagram}
+
+Figure~\ref{fig:system-architecture} illustrates the architectural evolution of the system.
+
+\begin{figure}[htbp]
+    \centering
+    \resizebox{0.95\textwidth}{!}{\input{figure/system-architecture.tex}}
+    \caption{Three-Phase System Architecture Evolution showing communication patterns and node roles in each operational mode}
+    \label{fig:system-architecture}
+\end{figure}
+
+\subsection{Data Communication Flow Diagram}
+\label{subsec:data-flow-diagram}
+
+Figure~\ref{fig:data-communication-flow} presents a detailed sequence diagram showing the temporal flow of data through the system.
+
+\begin{figure}[htbp]
+    \centering
+    \resizebox{0.9\textwidth}{!}{\input{figure/data-communication-flow.tex}}
+    \caption{Data Communication Flow Sequence showing packet transmission and processing processes}
+    \label{fig:data-communication-flow}
+\end{figure}
+
+\subsection{Hardware Layout Diagram}
+\label{subsec:hardware-layout-diagram}
+
+Figure~\ref{fig:hardware-layout} depicts the physical testbed configuration.
+
+\begin{figure}[htbp]
+    \centering
+    \resizebox{0.85\textwidth}{!}{\input{figure/hardware-layout.tex}}
+    \caption{Physical Testbed Layout showing coordinate system and sample target locations}
+    \label{fig:hardware-layout}
+\end{figure}
+
+\subsection{Data Flow Diagrams (DFD)}
+\label{subsec:dfd-diagrams}
+
+Data Flow Diagrams provide structured representations of data processing and storage within the system.
+
+\subsubsection{DFD Level 0 - Context Diagram}
+\label{subsubsec:dfd-level0}
+
+Figure~\ref{fig:dfd-level0} presents the context-level view.
+
+\begin{figure}[htbp]
+    \centering
+    \resizebox{0.9\textwidth}{!}{\input{figure/dfd-level0.tex}}
+    \caption{Data Flow Diagram Level 0 (Context Diagram) showing system boundaries and external entity interactions}
+    \label{fig:dfd-level0}
+\end{figure}
+
+\subsubsection{DFD Level 1 - Detailed Process Decomposition}
+\label{subsubsec:dfd-level1}
+
+Figure~\ref{fig:dfd-level1} decomposes the system into detailed processes.
+
+\begin{figure}[htbp]
+    \centering
+    \resizebox{0.95\textwidth}{!}{\input{figure/dfd-level1.tex}}
+    \caption{Data Flow Diagram Level 1 showing detailed process decomposition, data stores, and inter-process data flows}
+    \label{fig:dfd-level1}
+\end{figure}
+
+\subsection{Entity-Relationship Diagram}
+\label{subsec:er-diagram}
+
+Figure~\ref{fig:er-diagram} presents the database schema.
+
+\begin{figure}[htbp]
+    \centering
+    \resizebox{0.95\textwidth}{!}{\input{figure/er-diagram.tex}}
+    \caption{Entity-Relationship Diagram showing database schema}
+    \label{fig:er-diagram}
+\end{figure}
+
+\subsection{System Operation Flowchart}
+\label{subsec:system-operation-flowchart}
+
+Figure~\ref{fig:system-operation} illustrates the complete operational flow.
+
+\begin{figure}[htbp]
+    \centering
+    \resizebox{0.7\textwidth}{!}{\input{figure/flowchart-system-operation.tex}}
+    \caption{System Operation Flowchart showing time-slot protocol, node roles, and data flow through gateway to PC}
+    \label{fig:system-operation}
+\end{figure}

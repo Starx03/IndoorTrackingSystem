@@ -1,0 +1,78 @@
+\chapter{Literature Survey}
+\label{Literature_Survey}
+
+This chapter reviews the theoretical and practical academic literature relevant to the proposed LD2450 millimeter-wave (mmWave) Indoor Positioning System (IPS). The review begins by critically examining the widely documented flaws in conventional positioning methods—specifically the unreliability of Received Signal Strength Indicator (RSSI) arrays and the prohibitive infrastructure demands of Ultra-Wideband (UWB) networks. Following this critique, the review pivots to the foundational mechanics of Frequency Modulated Continuous Wave (FMCW) radar, explores the hardware capabilities of the LD2450 sensor module, and concludes by discussing modern multi-node networking paradigms used to counteract line-of-sight occlusion constraints.
+
+\section{Conventional Indoor Positioning Technologies}
+
+Indoor positioning has historically relied on leveraging existing wireless communication frameworks. However, as the demand for centimeter-level tracking precision has grown, the inherent limitations of these repurposed technologies have become undeniably pronounced.
+
+\subsection{The Vulnerability of RSSI-Based Systems}
+
+Received Signal Strength Indicator (RSSI) is one of the most historically adopted metrics for low-cost proximity and distance estimation, primarily because it leverages existing Wi-Fi (IEEE 802.11) and Bluetooth Low Energy (BLE) infrastructures \cite{zafari2019survey}. The theoretical premise relies on the log-distance path loss model: as a signal travels through free space, its strength degrades in a mathematically predictable curve \cite{rappaport1996wireless}. While mathematically sound in a vacuum, literature overwhelmingly demonstrates that RSSI measurements in real-world indoor scenarios are catastrophically volatile \cite{liu2007survey}. 
+
+RSSI signals are deeply susceptible to severe environmental noise, structural shadowing, and multipath fading. Multipath fading occurs when a radio signal bounces off walls, metallic furniture, and even human bodies, arriving at the receiver multiple times with varying phase shifts \cite{pahlavan2002indoor}. This constructive and destructive interference creates massive localized spikes and drops in signal strength, rendering basic trilateration math highly inaccurate. Furthermore, literature confirms that the path-loss exponents ($n$) and reference constants ($A$) required for RSSI distance mapping are highly environment-dependent \cite{seidel1992path}. Deploying an RSSI system demands an exhaustive, manual empirical calibration process (fingerprinting). Even a minor environmental change—such as moving a metal desk or changing the density of people in a room—entirely invalidates the previous calibration, demanding a complete system reset \cite{yassin2017recent}.
+
+\subsection{The Prohibitive Cost of Ultra-Wideband (UWB)}
+
+Ultra-Wideband (UWB) emerged as the premium alternative to RSSI, offering extraordinary, sub-decimeter tracking accuracy by utilizing Time Difference of Arrival (TDOA) and Two-Way Ranging (TWR) methodologies \cite{alavi2017indoor}. UWB operates across a massive frequency bandwidth (typically 3.1 to 10.6 GHz), transmitting incredibly short, nanosecond-width pulses that easily penetrate solid obstacles and are highly immune to multipath distortions \cite{dardari2009ranging}.
+
+Despite its technical superiority, UWB deployment is severely restricted by its immense infrastructure requirements and overarching financial burden. To achieve its advertised precision, a UWB network requires a dense perimeter of synchronized anchor nodes fixed around the testing area. These anchors demand rigorous sub-nanosecond clock synchronization to accurately calculate Time of Flight (ToF) matrices \cite{gezici2005localization}. The cost of the specialized transceivers, coupled with the computational hardware required back-end processing, renders UWB economically unviable for widespread, ubiquitous application across large commercial spaces or residential smart-home ecosystems. This creates a glaring gap in the market for a technology that possesses UWB's reliability but RSSI's accessibility.
+
+\section{Principles of Millimeter-Wave (mmWave) Radar}
+
+To bridge the gap between cost and precision, contemporary research has aggressively pivoted toward millimeter-wave (mmWave) radar. Operating at extreme frequencies (typically 24 GHz, 60 GHz, or 77 GHz), mmWave sensors transmit wavelengths in the millimeter range, allowing for highly compact antenna designs and exceptional spatial resolution \cite{wei2014key}.
+
+\subsection{Frequency Modulated Continuous Wave (FMCW) Theory}
+
+Unlike traditional pulse radar which relies on measuring the echo time of intermittent bursts, mmWave technology typically utilizes Frequency Modulated Continuous Wave (FMCW) architecture. An FMCW radar continuously transmits a radio frequency signal whose frequency increases linearly over time—a pattern known as a "chirp" \cite{patole2017automotive}. When this transmitted chirp hits an obstacle (such as a human moving in a room), it reflects back to the sensor's receiver. 
+
+The reflected signal is naturally delayed by the exact Time of Flight (ToF) it took to bounce off the object. Because the transmitter's frequency is constantly rising, the echo that returns will have a distinctly lower frequency than the signal currently being broadcast. The sensor mixes the transmitted signal and the received echo to generate an Intermediate Frequency (IF) signal. By performing a Fast Fourier Transform (FFT) on this IF signal, the system can mathematically extract the instantaneous beat frequency, which is directly proportionate to the radial distance of the target \cite{hasch2012millimeter}. This process bypasses the unreliability of RSSI path-loss degradation entirely, relying purely on the constant speed of light to calculate range.
+
+\subsection{Angle of Arrival and Cartesian Mapping}
+
+Determining range alone provides a one-dimensional distance metric. To achieve two-dimensional spatial tracking (X and Y coordinates), the radar must calculate the Angle of Arrival (AoA) of the reflected wave. This is accomplished using a carefully arranged micro-antenna array (Multiple-Input Multiple-Output, or MIMO). Because the receiving antennas are spaced millimeters apart, a reflected wave arriving from an angle will strike one antenna slightly before it strikes an adjacent one \cite{sun2020wifi}. 
+
+By measuring the microscopic phase differences between the signals received across the antenna array, the mmWave radar calculates the exact angular trajectory of the target relative to the sensor face. Combining the calculated distance (via FMCW beat frequency) with this angular trajectory allows the backend mathematics to instantly deduce the Cartesian spatial coordinates, delivering exact geometrical positioning \cite{zheng2019indoor}.
+
+\section{The LD2450 Sensor Architecture}
+
+This project utilizes the LD2450, a commercially available, specialized 24 GHz mmWave radar module explicitly engineered for high-precision human trajectory tracking. Recent literature evaluating the LD2450 architecture reveals key systemic advantages that elevate it beyond standard continuous wave radars.
+
+\subsection{Integrated Digital Signal Processing (DSP)}
+
+One of the most profound barriers in radar implementation has historically been the immense computational load. Resolving raw mmWave intermediate frequencies requires high-speed analog-to-digital converters (ADCs) and intensive multidimensional Fast Fourier Transforms \cite{patole2017automotive}. 
+
+The LD2450 module democratizes this process by housing a tremendously powerful secondary Digital Signal Processor (DSP) entirely on the silicon die. Rather than flooding a connected microcontroller with raw, unstructured waveform data, the LD2450 internally executes the complex FMCW and AoA calculations. It natively filters out static environmental clutter (such as chairs or walls) and isolates moving dynamic entities. The module then outputs structured serial (UART) packets containing purely actionable data: specifically, the pre-calculated X and Y coordinate vectors of the tracked targets. This massive offloading of computational burden allows low-cost host microcontrollers, such as the ESP32, to operate seamlessly without succumbing to processing bottlenecks.
+
+\subsection{Multi-Target Resolution}
+
+While basic microwave radars can only return the single strongest reflection—rendering them useless in environments with multiple people—the LD2450 is capable of identifying and maintaining independent tracking locks on up to three separate targets simultaneously \cite{hi-link-ld2450-datasheet}. The onboard firmware analyzes the continuous stream of reflections, assigning unique numerical identifiers to clustered point-clouds moving through the space, and tracking their independent Cartesian trajectories. This multithreading capability is critical for commercial indoor positioning deployments, which rarely involve a solitary subject.
+
+\section{Multi-Node and Distributed Networks (Occlusion Solving)}
+
+While mmWave technology provides unparalleled precision at low costs, academic literature heavily emphasizes its primary physical vulnerability: Line-of-Sight (LoS) restrictions. 
+
+\subsection{Addressing Line-of-Sight Vulnerabilities}
+
+Due to the extremely short wavelengths of 24 GHz transmissions, mmWave signals suffer from significant attenuation when encountering dense physical barriers \cite{rappaport2013millimeter}. Unlike the longer waves of standard 2.4 GHz Wi-Fi that easily permeate drywall and timber, mmWave signals reflect heavily off surfaces and are readily absorbed by human bodies. Consequently, if an individual walks behind a thick structural pillar, or if one human fully eclipses another, the sensor's direct line-of-sight is broken. The radar loses the target's reflection profile, causing tracking to temporarily fail or visually jump \cite{wang2018track}.
+
+\subsection{ESP32-Based Spatial Data Aggregation}
+
+To combat line-of-sight vulnerabilities, modern distributed positioning architectures rely on "Sensor Fusion" and multi-node overlapping \cite{akyildiz2005wireless}. Instead of a single sensor attempting to map an entire complex floorplan, the testing environment is sectored. 
+
+By distributing multiple inexpensive LD2450 sensors at varying peripheral angles—each hosted by a low-power ESP32 transceiver—the network can establish overlapping detection zones. When a target is structurally occluded from Sensor A, Sensor B maintains the Line-of-Sight tracking vector. The ESP32 microcontrollers are utilized to rapidly relay these serialized UART coordinate packets over high-speed localized Wi-Fi protocols (such as ESP-NOW or MQTT) to a central aggregation server \cite{espressif2023espnow}. The aggregator mathematically fuses the incoming geometric data streams, discarding duplicate readings via threshold matching algorithms, to render a unified, uninterrupted trajectory map. This networked aggregation is essential for realizing true commercial scalability \cite{niculescu2001ad}.
+
+\section{Privacy and Environmental Robustness}
+
+Beyond spatial precision, literature continuously underscores the immense sociotechnical and environmental benefits of mmWave technology when compared alongside optical Computer Vision (CV) tracking systems.
+
+\subsection{Camera-Free Tracking Paradigms}
+
+Optical tracking systems utilizing Deep Learning computer-vision architectures (such as YOLO or ResNet) can offer exceptional spatial positioning. However, deploying optical sensors in residential, medical, or corporate environments introduces severe, often legally prohibitive, privacy violations \cite{zhang2018privacy}. Employees and patients are deeply resistant to constant video surveillance. 
+
+Millimeter-wave radar resolves this ethical barrier inherently. The sensor only processes abstract electromagnetic reflections. It cannot distinguish demographic features, clothing, or facial identities \cite{ye2020privacy}. It outputs only anonymous Cartesian dots corresponding to moving mass, rendering it a perfectly privacy-compliant positioning solution.
+
+\subsection{Immunity to Lighting and Airborne Interference}
+
+Furthermore, optical tracking technologies require well-illuminated environments and clear air to function effectively. A camera-based system fails wholly in the dark or in scenarios thick with smoke or heavy industrial particulate matter. Because the LD2450 operates on the microwave radio spectrum, its tracking efficacy is totally decoupled from ambient lighting conditions \cite{wei2014key}. The radar functions identically in complete darkness, extreme temperature fluctuations, or dusty environments. It provides a profoundly robust, highly persistent, industrial-grade indoor tracking solution completely uninhibited by the limitations plaguing traditional IoT localization techniques.

@@ -1,0 +1,102 @@
+\begin{tikzpicture}[node distance=1.7cm and 2.6cm,
+startstop/.style={rectangle, rounded corners, draw, thick,
+minimum width=4.0cm, minimum height=1.0cm,
+font=\small, align=center, fill=red!20},
+process/.style={rectangle, rounded corners, draw, thick,
+minimum width=5.0cm, minimum height=1.2cm,
+text width=4.7cm, align=center,
+font=\small, fill=blue!15},
+smallprocess/.style={rectangle, rounded corners, draw, thick,
+minimum width=4.3cm, minimum height=1.2cm,
+text width=4.0cm, align=center,
+font=\small, fill=blue!15},
+io/.style={trapezium, trapezium left angle=70, trapezium right angle=110,
+draw, thick, minimum width=4.4cm, minimum height=1.2cm,
+align=center, font=\small, fill=green!20},
+decision/.style={diamond, draw, thick, aspect=2,
+minimum width=3.4cm, minimum height=1.8cm,
+align=center, font=\small, fill=yellow!20},
+subprocess/.style={rectangle, draw, thick, double,
+minimum width=5.0cm, minimum height=1.2cm,
+text width=4.7cm, align=center,
+font=\small, fill=purple!20},
+arrow/.style={->, thick, >=stealth},
+]
+
+% Title
+\node[font=\Large\bfseries] at (0,14.3) {System Operation Flowchart (Multi-Target Mode)};
+
+% Row 1
+\node[startstop] (start) at (0,12.5) {System Start};
+
+% Row 2
+\node[process] (init) [below=1.5cm of start] {Initialize ESP-NOW Protocol};
+\node[process] (config) [below=1.4cm of init] {Load Configuration (Time Slots, Node IDs)};
+\node[process] (sync) [below=1.4cm of config] {Synchronize All Nodes to a Common Time Base};
+
+% Row 3
+\node[decision] (running) [below=2.2cm of sync] {System Running?};
+\node[startstop] (stop) [left=4cm of running] {Stop System};
+
+% Row 4
+\node[process] (slotcheck) [below=2.2cm of running] {Check Current Time Slot};
+
+% Row 5
+\node[decision] (slotactive) [below=2.0cm of slotcheck]{Is This Node's Time Slot?};
+
+% Target branch
+\node[process] (targetTx) [below left=3cm and 4.4cm of slotactive]{Target Node:\\Broadcast ESP-NOW Packet};
+\node[process] (targetWait) [below=3.4cm of targetTx]{Wait for Next Assigned Slot (100 ms)};
+
+% Anchor branch
+\node[process] (anchorRx) [below right=3cm and 4.4cm of slotactive]{Anchor Node:\\Receive the Broadcast Packet};
+\node[smallprocess] (anchorRSSI) [below=1.2cm of anchorRx]{Measure RSSI and Timestamp};
+\node[smallprocess] (anchorSend) [below=1.2cm of anchorRSSI]{Send Processed Data to the Gateway};
+
+% Gateway block
+\node[subprocess] (gateway) [below=3.5cm of slotactive]{Gateway: Aggregate All Anchor Data};
+\node[decision] (allresp) [below=2cm of gateway]{All Anchors Responded?};
+\node[smallprocess] (waitTimeout) [right=4cm of allresp, yshift=-1.5cm]{Wait for Timeout Window};
+
+% Estimation & output
+\node[subprocess] (estimate) [below=2cm of allresp]{Estimate Position (Based on Aggregated RSSI)};
+\node[io] (output) [below=2cm of estimate]{Output Estimated Position to PC / Logger};
+\node[process] (store) [below=1.7cm of output]{Store Position Data in Database};
+
+% Arrows
+\draw[arrow] (start) -- (init);
+\draw[arrow] (init) -- (config);
+\draw[arrow] (config) -- (sync);
+\draw[arrow] (sync) -- (running);
+\draw[arrow] (running) -- node[midway, above] {No} (stop);
+\draw[arrow] (running) -- node[midway, right] {Yes} (slotcheck);
+\draw[arrow] (slotcheck) -- (slotactive);
+
+% Target branch routing (clean, no overlaps)
+\draw[arrow] (slotactive.west) -- ++(-1,0)|- node[pos=0.2, above] {Yes (Target)} (targetTx);
+\draw[arrow] (targetTx) -- (targetWait);
+\draw[arrow] (targetWait.west) -- ++(-2.5,0)|- (slotcheck.west);
+
+% Anchor branch routing
+\draw[arrow] (slotactive.east) -- ++(1,0)|- node[pos=0.25, above] {Yes (Anchor)} (anchorRx);
+\draw[arrow] (anchorRx) -- (anchorRSSI);
+\draw[arrow] (anchorRSSI) -- (anchorSend);
+\draw[arrow] (anchorSend.east) -- ++(2.4,0)|- (gateway.east);
+
+% Gateway → Decision
+\draw[arrow] (gateway) -- (allresp);
+
+% ===== FIXED SECTION (No through-node lines) =====
+\draw[<->, thick, >=stealth] (allresp.east) -- (waitTimeout.west);
+
+% Yes-branch
+\draw[arrow] (allresp.south) -- (estimate);
+
+% Downstream
+\draw[arrow] (estimate) -- (output);
+\draw[arrow] (output) -- (store);
+
+% Loop back cleanly
+\draw[arrow] (store.west) -- ++(-3.3,0)|- (slotcheck.west);
+
+\end{tikzpicture}

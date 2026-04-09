@@ -1,0 +1,136 @@
+\begin{tikzpicture}[
+    node distance=3cm and 4cm,
+    entity/.style={rectangle, draw, thick, minimum width=2.8cm, minimum height=1.3cm, align=center, font=\small\bfseries, fill=blue!20},
+    attribute/.style={ellipse, draw, thick, minimum width=1.6cm, minimum height=0.85cm, align=center, font=\tiny, fill=green!20},
+    relationship/.style={diamond, draw, thick, minimum width=2.2cm, minimum height=1.3cm, align=center, font=\tiny\bfseries, fill=yellow!20},
+    key/.style={underline},
+    line/.style={thick}
+]
+
+% Title
+\node[font=\Large\bfseries] at (0,11) {Entity-Relationship Diagram};
+\node[font=\small] at (0,10.3) {ESP32 Indoor Positioning System Database Schema};
+
+% Entities - Increased spacing
+\node[entity] (node) at (-7,6) {NODE};
+\node[entity] (measurement) at (0,6) {MEASUREMENT};
+\node[entity] (position) at (7,6) {POSITION};
+\node[entity] (calibration) at (-7,0) {CALIBRATION};
+\node[entity] (session) at (7,0) {SESSION};
+
+% Node Attributes - Better positioning
+\node[attribute] (node_id) at (-9.5,8.5) {\underline{node\_id}};
+\node[attribute] (node_type) at (-7,9) {node\_type};
+\node[attribute] (mac_addr) at (-4.5,8.5) {mac\_address};
+\node[attribute] (location_x) at (-9.5,6) {location\_x};
+\node[attribute] (location_y) at (-9.5,4.5) {location\_y};
+\node[attribute] (antenna_h) at (-4.5,4.5) {antenna\_height};
+
+% Measurement Attributes - Spread out more
+\node[attribute] (meas_id) at (0,9) {\underline{measurement\_id}};
+\node[attribute] (rssi) at (-2.5,8.5) {rssi\_value};
+\node[attribute] (timestamp) at (2.5,8.5) {timestamp};
+\node[attribute] (packet_id) at (0,3.5) {packet\_id};
+
+% Position Attributes - Better spacing
+\node[attribute] (pos_id) at (7,9) {\underline{position\_id}};
+\node[attribute] (est_x) at (9.5,8.5) {estimated\_x};
+\node[attribute] (est_y) at (9.5,7) {estimated\_y};
+\node[attribute] (confidence) at (9.5,5) {confidence};
+\node[attribute] (method) at (9.5,3.5) {method};
+
+% Calibration Attributes - More space
+\node[attribute] (cal_id) at (-9.5,0) {\underline{calibration\_id}};
+\node[attribute] (param_a) at (-7,-1.5) {parameter\_A};
+\node[attribute] (param_n) at (-4.5,0) {parameter\_n};
+\node[attribute] (cal_date) at (-7,2) {calibration\_date};
+
+% Session Attributes - Better layout
+\node[attribute] (sess_id) at (9.5,0) {\underline{session\_id}};
+\node[attribute] (start_time) at (7,-1.5) {start\_time};
+\node[attribute] (end_time) at (7,2) {end\_time};
+\node[attribute] (phase) at (4.5,0) {phase\_type};
+
+% Relationships - Adjusted positions
+\node[relationship] (transmits) at (-3.5,6) {TRANS-\\MITS};
+\node[relationship] (receives) at (3.5,6) {RECEIVES};
+\node[relationship] (generates) at (3.5,3) {GENE-\\RATES};
+\node[relationship] (uses) at (-3.5,3) {USES};
+\node[relationship] (belongs) at (0,0) {BELONGS\\TO};
+
+% Connections - Node to Transmits (horizontal)
+\draw[line] (node.east) -- (transmits.west);
+\draw[line] (transmits.east) -- (measurement.west);
+\node[font=\tiny] at (-5.5,6.5) {1};
+\node[font=\tiny] at (-1.5,6.5) {N};
+
+% Connections - Measurement to Receives (horizontal)
+\draw[line] (measurement.east) -- (receives.west);
+\draw[line] (receives.east) -- (position.west);
+\node[font=\tiny] at (1.5,6.5) {N};
+\node[font=\tiny] at (5.5,6.5) {1};
+
+% Connections - Position to Generates (curved to avoid crossing)
+\draw[line] (position.south) to[bend right=20] (generates.north);
+\draw[line] (generates.west) to[bend right=15] (measurement.south);
+\node[font=\tiny] at (6,3.5) {1};
+\node[font=\tiny] at (1.5,3.5) {N};
+
+% Connections - Calibration to Uses (curved to avoid crossing)
+\draw[line] (calibration.north) to[bend left=20] (uses.south);
+\draw[line] (uses.north) to[bend left=15] (node.south);
+\node[font=\tiny] at (-6,3.5) {N};
+\node[font=\tiny] at (-6,4.5) {1};
+
+% Connections - Session to Belongs (curved)
+\draw[line] (session.north) to[bend right=20] (belongs.south);
+\draw[line] (belongs.north) to[bend right=15] (measurement.south);
+\node[font=\tiny] at (5,0.5) {1};
+\node[font=\tiny] at (1.5,0.5) {N};
+
+% Attribute Connections - Node
+\draw[line] (node_id) -- (node.north west);
+\draw[line] (node_type) -- (node.north);
+\draw[line] (mac_addr) -- (node.north east);
+\draw[line] (location_x) -- (node.west);
+\draw[line] (location_y) -- (node.south west);
+\draw[line] (antenna_h) -- (node.south east);
+
+% Attribute Connections - Measurement
+\draw[line] (meas_id) -- (measurement.north);
+\draw[line] (rssi) -- (measurement.north west);
+\draw[line] (timestamp) -- (measurement.north east);
+\draw[line] (packet_id) -- (measurement.south);
+
+% Attribute Connections - Position
+\draw[line] (pos_id) -- (position.north);
+\draw[line] (est_x) -- (position.north east);
+\draw[line] (est_y) -- (position.east);
+\draw[line] (confidence) -- (position.east);
+\draw[line] (method) -- (position.south east);
+
+% Attribute Connections - Calibration
+\draw[line] (cal_id) -- (calibration.west);
+\draw[line] (param_a) -- (calibration.south);
+\draw[line] (param_n) -- (calibration.east);
+\draw[line] (cal_date) -- (calibration.north);
+
+% Attribute Connections - Session
+\draw[line] (sess_id) -- (session.east);
+\draw[line] (start_time) -- (session.south);
+\draw[line] (end_time) -- (session.north);
+\draw[line] (phase) -- (session.west);
+
+% Legend - Moved further down to avoid overlap
+\node[rectangle, draw, dashed, fill=gray!10, text width=14cm, align=left, font=\tiny] at (0,-4.5) {
+    \textbf{Entity Descriptions:}\\
+    \textbf{NODE:} Represents ESP32 devices (targets, anchors, gateway) with unique IDs and physical locations\\
+    \textbf{MEASUREMENT:} Stores individual RSSI measurements with timestamps from anchor nodes\\
+    \textbf{POSITION:} Contains estimated X,Y coordinates derived from RSSI measurements\\
+    \textbf{CALIBRATION:} Stores path-loss model parameters (A, n) for distance-RSSI conversion\\
+    \textbf{SESSION:} Groups measurements by experimental session and system phase\\
+    \\
+    \textbf{Cardinality:} One node transmits many measurements; Many measurements generate one position estimate
+};
+
+\end{tikzpicture}

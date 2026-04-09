@@ -1,0 +1,63 @@
+\begin{tikzpicture}[
+    scale=0.12,
+    anchor/.style={circle, draw, thick, fill=green!30, minimum size=1cm, font=\bfseries},
+    target/.style={circle, draw, thick, fill=blue!30, minimum size=0.8cm, font=\small},
+    dimension/.style={<->, thick, >=stealth}
+]
+
+% Draw grid
+\draw[step=10, gray, very thin] (0,0) grid (70,50);
+\draw[step=10, gray, thick] (0,0) grid (70,50);
+
+% Draw border
+\draw[very thick] (0,0) rectangle (70,50);
+
+% Place anchors at corners - Labels with coordinates only
+\node[anchor, label={below left:\textbf{A1 (0,0)}}] (a1) at (0,0) {};
+\node[anchor, label={below right:\textbf{A2 (70,0)}}] (a2) at (70,0) {};
+\node[anchor, label={above left:\textbf{A3 (0,50)}}] (a3) at (0,50) {};
+\node[anchor, label={above right:\textbf{A4 (70,50)}}] (a4) at (70,50) {};
+
+% Place sample target positions
+\node[target, label={above:T1}] (t1) at (20,15) {T};
+\node[target, label={above:T2}] (t2) at (35,30) {T};
+\node[target, label={above:T3}] (t3) at (50,20) {T};
+
+% Draw signal lines from targets to anchors (dashed)
+\draw[dashed, blue!50, thin] (t1) -- (a1);
+\draw[dashed, blue!50, thin] (t1) -- (a2);
+\draw[dashed, blue!50, thin] (t1) -- (a3);
+\draw[dashed, blue!50, thin] (t1) -- (a4);
+
+% Dimensions
+\draw[dimension] (0,-5) -- (70,-5) node[midway, below] {70 cm};
+\draw[dimension] (-5,0) -- (-5,50) node[midway, left, rotate=90] {50 cm};
+
+% Coordinate system labels
+\node[font=\small] at (35,-10) {X-axis (cm)};
+\node[font=\small, rotate=90] at (-10,25) {Y-axis (cm)};
+
+% Add coordinate markers
+\foreach \x in {0,10,20,30,40,50,60,70} {
+    \node[font=\tiny, below] at (\x,-1) {\x};
+}
+\foreach \y in {0,10,20,30,40,50} {
+    \node[font=\tiny, left] at (-1,\y) {\y};
+}
+
+% Legend
+\node[anchor, minimum size=0.6cm] at (60,-8) {};
+\node[font=\small, right] at (61,-8) {Anchor Node};
+\node[target, minimum size=0.5cm] at (60,-12) {};
+\node[font=\small, right] at (61,-12) {Target Node};
+
+% Title
+\node[font=\large\bfseries] at (35,55) {ESP32 IPS Testbed Layout};
+
+% Add note about antenna height
+\node[rectangle, draw, dashed, fill=yellow!20, font=\small, align=left] at (35,-18) {
+    Note: All antennas at 10 cm height\\
+    Grid spacing: 10 cm
+};
+
+\end{tikzpicture}

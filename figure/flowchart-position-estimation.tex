@@ -1,0 +1,113 @@
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    startstop/.style={rectangle, rounded corners, draw, thick, minimum width=3.2cm, minimum height=0.9cm, align=center, font=\small, fill=red!20},
+    process/.style={rectangle, draw, thick, minimum width=3.8cm, minimum height=0.9cm, align=center, font=\small, fill=blue!20},
+    decision/.style={diamond, draw, thick, minimum width=2.8cm, minimum height=1.6cm, align=center, font=\tiny, fill=yellow!20, aspect=2},
+    io/.style={trapezium, trapezium left angle=70, trapezium right angle=110, draw, thick, minimum width=3.2cm, minimum height=0.9cm, align=center, font=\small, fill=green!20},
+    arrow/.style={->, thick, >=stealth}
+]
+
+% Title
+\node[font=\Large\bfseries] at (0,13) {Flowchart: Real-Time Position Estimation};
+
+% Start
+\node[startstop] (start) at (0,11.2) {Start Position\\Estimation};
+
+% Input
+\node[io] (input) at (0,9.7) {Input: RSSI values from\\all anchors};
+
+% Preprocessing - Increased spacing
+\node[process] (filter) at (0,8.2) {Apply RSSI filtering\\(moving average)};
+\node[decision] (valid) at (0,6.5) {RSSI values\\valid?};
+\node[process] (discard) at (-5,6.5) {Discard invalid\\measurements};
+
+% Method selection
+\node[decision] (method) at (0,4.6) {Estimation\\method?};
+
+% ML Path - Left side with more space
+\node[process] (ml_scale) at (-5,2.8) {Normalize RSSI using\\StandardScaler};
+\node[process] (ml_predict) at (-5,1.3) {Apply MLPRegressor\\model};
+\node[process] (ml_output) at (-5,-0.2) {Output: X, Y\\coordinates};
+
+% Trilateration Path - Right side with more space
+\node[process] (tri_convert) at (6,2.8) {Convert RSSI to distance\\using A, n parameters};
+\node[decision] (tri_check) at (6,1.1) {Distance\\values\\reasonable?};
+\node[process] (tri_calc) at (6,-0.5) {Calculate position using\\trilateration algorithm};
+\node[process] (tri_output) at (6,-2) {Output: X, Y\\coordinates};
+\node[process] (tri_error) at (10.5,1.1) {Use last known\\position};
+
+% Merge paths
+\node[process] (validate) at (0,-3.2) {Validate position\\within bounds};
+\node[decision] (bounds) at (0,-4.9) {Position\\within\\testbed?};
+\node[process] (correct) at (-5,-4.9) {Apply boundary\\correction};
+
+% Output
+\node[io] (output) at (0,-6.6) {Output: Final position\\(X, Y) with timestamp};
+\node[process] (store) at (0,-8.1) {Store in position\\database};
+\node[startstop] (end) at (0,-9.6) {End};
+
+% Arrows - Main flow
+\draw[arrow] (start) -- (input);
+\draw[arrow] (input) -- (filter);
+\draw[arrow] (filter) -- (valid);
+\draw[arrow] (valid) -- node[above, font=\tiny] {No} (discard);
+\draw[arrow] (discard) |- (input);
+\draw[arrow] (valid) -- node[right, font=\tiny] {Yes} (method);
+
+% ML branch - Cleaner path
+\draw[arrow] (method) -- node[above, font=\tiny, sloped] {ML} (ml_scale);
+\draw[arrow] (ml_scale) -- (ml_predict);
+\draw[arrow] (ml_predict) -- (ml_output);
+\draw[arrow] (ml_output) -- ++(-2,0) |- (validate);
+
+% Trilateration branch - Avoid crossings
+\draw[arrow] (method) -- node[above, font=\tiny, sloped] {Trilateration} (tri_convert);
+\draw[arrow] (tri_convert) -- (tri_check);
+\draw[arrow] (tri_check) -- node[right, font=\tiny] {Yes} (tri_calc);
+\draw[arrow] (tri_calc) -- (tri_output);
+\draw[arrow] (tri_output) -- ++(2,0) |- (validate);
+\draw[arrow] (tri_check) -- node[above, font=\tiny] {No} (tri_error);
+\draw[arrow] (tri_error) -- ++(0,-3.1) -| (tri_output);
+
+% Validation and output
+\draw[arrow] (validate) -- (bounds);
+\draw[arrow] (bounds) -- node[above, font=\tiny] {No} (correct);
+\draw[arrow] (correct) |- (validate);
+\draw[arrow] (bounds) -- node[right, font=\tiny] {Yes} (output);
+\draw[arrow] (output) -- (store);
+\draw[arrow] (store) -- (end);
+
+% Notes - Repositioned to avoid overlaps
+\node[rectangle, draw, dashed, fill=gray!10, text width=3.5cm, align=left, font=\tiny] at (-10,9.5) {
+    \textbf{Validation Checks:}\\
+    • RSSI range: -90 to -30 dBm\\
+    • Position bounds: 0-70 cm (X)\\
+    • Position bounds: 0-50 cm (Y)\\
+    • Timestamp consistency
+};
+
+\node[rectangle, draw, dashed, fill=gray!10, text width=3.5cm, align=left, font=\tiny] at (11.5,9.5) {
+    \textbf{RSSI Filtering:}\\
+    • Moving average (n=5)\\
+    • Median filter\\
+    • Outlier removal\\
+    • Noise reduction
+};
+
+\node[rectangle, draw, dashed, fill=gray!10, text width=3.5cm, align=left, font=\tiny] at (-10,2) {
+    \textbf{ML Model:}\\
+    • Input: 4-5 RSSI values\\
+    • Hidden: (64, 64) neurons\\
+    • Output: X, Y coordinates\\
+    • Activation: ReLU
+};
+
+\node[rectangle, draw, dashed, fill=gray!10, text width=3.5cm, align=left, font=\tiny] at (11.5,4) {
+    \textbf{Trilateration:}\\
+    • Min 3 anchors required\\
+    • Least squares optimization\\
+    • Circle intersection method\\
+    • Error minimization
+};
+
+\end{tikzpicture}

@@ -1,0 +1,81 @@
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    startstop/.style={rectangle, rounded corners, draw, thick, minimum width=3.2cm, minimum height=0.9cm, align=center, font=\small, fill=red!20},
+    process/.style={rectangle, draw, thick, minimum width=3.8cm, minimum height=0.9cm, align=center, font=\small, fill=blue!20},
+    decision/.style={diamond, draw, thick, minimum width=2.8cm, minimum height=1.6cm, align=center, font=\tiny, fill=yellow!20, aspect=2},
+    io/.style={trapezium, trapezium left angle=70, trapezium right angle=110, draw, thick, minimum width=3.2cm, minimum height=0.9cm, align=center, font=\small, fill=green!20},
+    arrow/.style={->, thick, >=stealth}
+]
+
+% Title
+\node[font=\Large\bfseries] at (0,12) {Flowchart: Calibration Protocol};
+
+% Start
+\node[startstop] (start) at (0,10.2) {Start Calibration};
+
+% Process steps - Increased spacing
+\node[process] (setup) at (0,8.7) {Setup: Place single target\\at known position (X, Y)};
+\node[process] (init) at (0,7.2) {Initialize: Set sample\\counter = 0};
+\node[decision] (check) at (0,5.3) {Sample\\count < 100?};
+\node[process] (broadcast) at (0,3.4) {Target broadcasts\\ESP-NOW packet};
+\node[process] (measure) at (0,1.9) {All anchors measure\\RSSI values};
+\node[process] (record) at (0,0.4) {Record: X, Y, RSSI\_A1,\\RSSI\_A2, RSSI\_A3, RSSI\_A4};
+\node[process] (increment) at (0,-1.1) {Increment sample counter};
+
+% Right side decision and process - More spacing
+\node[decision] (positions) at (6.5,5.3) {All grid\\positions\\covered?};
+\node[process] (move) at (6.5,3.4) {Move target to\\next grid position};
+
+% Bottom processes
+\node[process] (aggregate) at (0,-2.8) {Aggregate all samples\\into dataset};
+\node[process] (calculate) at (0,-4.3) {Calculate average RSSI\\for each position};
+\node[process] (derive) at (0,-5.8) {Derive path-loss constants\\A and n using regression};
+\node[io] (output) at (0,-7.3) {Output: Calibration\\parameters (A, n)};
+\node[startstop] (end) at (0,-8.8) {End Calibration};
+
+% Arrows - Main flow
+\draw[arrow] (start) -- (setup);
+\draw[arrow] (setup) -- (init);
+\draw[arrow] (init) -- (check);
+\draw[arrow] (check) -- node[right, font=\tiny] {Yes} (broadcast);
+\draw[arrow] (broadcast) -- (measure);
+\draw[arrow] (measure) -- (record);
+\draw[arrow] (record) -- (increment);
+
+% Loop back arrow - Goes further left to avoid crossing
+\draw[arrow] (increment) -- ++(-4,0) |- (check);
+
+% Right side flow - Wider path to avoid crossings
+\draw[arrow] (check) -- node[above, font=\tiny] {No} (positions);
+\draw[arrow] (positions) -- node[right, font=\tiny] {No} (move);
+\draw[arrow] (move) -- ++(0,3.8) -| (init);
+
+% From positions to aggregate - Goes around to avoid crossing
+\draw[arrow] (positions.south) -- ++(0,-0.8) -- ++(3,0) |- (aggregate.east);
+
+% Final flow
+\draw[arrow] (aggregate) -- (calculate);
+\draw[arrow] (calculate) -- (derive);
+\draw[arrow] (derive) -- (output);
+\draw[arrow] (output) -- (end);
+
+% Notes - Repositioned to avoid overlap
+\node[rectangle, draw, dashed, fill=gray!10, text width=4cm, align=left, font=\tiny] at (11.5,9) {
+    \textbf{Key Parameters:}\\
+    • Sample size: 50-100 per position\\
+    • Grid spacing: 10 cm\\
+    • Broadcast interval: 100 ms\\
+    • Static target (no motion)
+};
+
+\node[rectangle, draw, dashed, fill=gray!10, text width=4cm, align=left, font=\tiny] at (11.5,3) {
+    \textbf{Path-Loss Model:}\\
+    $d = 10^{(A - RSSI)/(10n)}$\\
+    \\
+    Where:\\
+    • A = RSSI at 1 meter\\
+    • n = path-loss exponent\\
+    • d = distance in meters
+};
+
+\end{tikzpicture}

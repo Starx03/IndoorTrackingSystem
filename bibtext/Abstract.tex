@@ -1,0 +1,12 @@
+\chapter{Abstract}
+\onehalfspacing
+
+Indoor positioning systems have gained significant importance in applications ranging from asset tracking to navigation in GPS-denied environments. This project presents the design and implementation of a low-cost, reproducible indoor positioning system using ESP32 microcontrollers, leveraging Received Signal Strength Indicator (RSSI) measurements and the ESP-NOW communication protocol. The system employs a three-phase architectural evolution that balances accuracy, scalability, and implementation complexity.\par
+
+The first phase implements a hands-free single-target positioning system using trilateration with calibrated path-loss models, achieving expected precision of $\pm$5--10~cm within a controlled 70$\times$50~cm testbed. The second phase extends the system to support multiple targets through sequential time-slot broadcasting, maintaining precision of $\pm$10--15~cm while preventing signal collisions. The third phase introduces a fully distributed mesh network architecture where all nodes measure pairwise RSSI values, enabling autonomous positioning with expected precision of $\pm$20~cm without centralized coordination.\par
+
+A key contribution of this work is the systematic calibration protocol for deriving environment-specific path-loss constants (A and n) through controlled data collection. The project also explores machine learning approaches using Multi-Layer Perceptron (MLP) regression to directly map RSSI fingerprints to spatial coordinates, demonstrating the feasibility of neural network-based positioning as an alternative to geometric trilateration.\par
+
+The system utilizes standardized data packet structures and synchronization mechanisms to ensure compatibility across all three phases, allowing incremental deployment and testing. Experimental validation is conducted using synthetic datasets and real-world RSSI measurements collected from the ESP32 testbed. Results demonstrate the trade-offs between positioning accuracy, system complexity, and scalability, providing insights for practical indoor localization deployments.\par
+
+This project establishes a foundation for future enhancements including dynamic environment adaptation, integration with existing infrastructure, and advanced algorithms such as graph optimization and Simultaneous Localization and Mapping (SLAM) for large-scale networks.

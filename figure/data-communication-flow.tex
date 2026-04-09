@@ -1,0 +1,71 @@
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    actor/.style={rectangle, draw, thick, minimum width=2cm, minimum height=0.8cm, align=center, font=\small},
+    message/.style={->, thick},
+    note/.style={rectangle, draw, dashed, fill=yellow!20, font=\tiny, align=left}
+]
+
+% Actors
+\node[actor, fill=blue!20] (target) {Target\\Node};
+\node[actor, fill=green!20, right=of target] (a1) {Anchor 1};
+\node[actor, fill=green!20, right=of a1] (a2) {Anchor 2};
+\node[actor, fill=green!20, right=of a2] (a3) {Anchor 3};
+\node[actor, fill=green!20, right=of a3] (a4) {Anchor 4};
+\node[actor, fill=orange!20, right=of a4] (gw) {Gateway};
+\node[actor, fill=red!20, right=of gw] (pc) {PC/\\Logger};
+
+% Lifelines
+\draw[dashed] (target) -- ++(0,-12);
+\draw[dashed] (a1) -- ++(0,-12);
+\draw[dashed] (a2) -- ++(0,-12);
+\draw[dashed] (a3) -- ++(0,-12);
+\draw[dashed] (a4) -- ++(0,-12);
+\draw[dashed] (gw) -- ++(0,-12);
+\draw[dashed] (pc) -- ++(0,-12);
+
+% Broadcast messages
+\draw[message] ([yshift=-1cm]target.south) -- node[above, font=\tiny, sloped] {ESP-NOW Broadcast} ([yshift=-1cm]a1.south);
+\draw[message] ([yshift=-1.5cm]target.south) -- node[above, font=\tiny, sloped] {ESP-NOW Broadcast} ([yshift=-1.5cm]a2.south);
+\draw[message] ([yshift=-2cm]target.south) -- node[above, font=\tiny, sloped] {ESP-NOW Broadcast} ([yshift=-2cm]a3.south);
+\draw[message] ([yshift=-2.5cm]target.south) -- node[above, font=\tiny, sloped] {ESP-NOW Broadcast} ([yshift=-2.5cm]a4.south);
+
+% Note about packet structure
+\node[note, below=3cm of target] (note1) {
+    target\_packet\_t:\\
+    - target\_id\\
+    - timestamp\\
+    - message
+};
+
+% Note about RSSI recording
+\node[note, below=4cm of a2] (note2) {
+    Record RSSI\\
+    \& Timestamp
+};
+
+% Anchor to Gateway messages
+\draw[message] ([yshift=-5.5cm]a1.south) -- node[above, font=\tiny, sloped] {anchor\_data\_t} ([yshift=-5.5cm]gw.south);
+\draw[message] ([yshift=-6cm]a2.south) -- node[above, font=\tiny, sloped] {anchor\_data\_t} ([yshift=-6cm]gw.south);
+\draw[message] ([yshift=-6.5cm]a3.south) -- node[above, font=\tiny, sloped] {anchor\_data\_t} ([yshift=-6.5cm]gw.south);
+\draw[message] ([yshift=-7cm]a4.south) -- node[above, font=\tiny, sloped] {anchor\_data\_t} ([yshift=-7cm]gw.south);
+
+% Note about anchor data structure
+\node[note, below=8cm of a3] (note3) {
+    anchor\_data\_t:\\
+    - anchor\_id\\
+    - rssi\\
+    - timestamp
+};
+
+% Gateway to PC message
+\draw[message] ([yshift=-9.5cm]gw.south) -- node[above, font=\tiny] {Aggregated Dataset} ([yshift=-9.5cm]pc.south);
+
+% Note about dataset format
+\node[note, below=10.5cm of gw] (note4) {
+    Dataset Format:\\
+    X, Y, RSSI\_A1,\\
+    RSSI\_A2, RSSI\_A3,\\
+    RSSI\_A4
+};
+
+\end{tikzpicture}

@@ -1,0 +1,78 @@
+\begin{tikzpicture}[
+    node distance=1.5cm and 2cm,
+    box/.style={rectangle, draw, thick, minimum width=2cm, minimum height=0.8cm, align=center, font=\small},
+    phase/.style={rectangle, draw, dashed, thick, inner sep=0.5cm},
+    arrow/.style={->, thick},
+    bidir/.style={<->, thick}
+]
+
+% Phase 1: Hands-Free (Single Target)
+\node[phase, label={[font=\bfseries]above:Phase 1: Hands-Free (Single Target)}] (phase1) at (0,0) {
+    \begin{tikzpicture}[node distance=1cm and 1.5cm, box/.style={rectangle, draw, thick, minimum width=2cm, minimum height=0.8cm, align=center, font=\small}, arrow/.style={->, thick}]
+        \node[box, fill=blue!20] (t1) {Target\\Node};
+        \node[box, fill=green!20, below left=of t1] (a1) {Anchor 1};
+        \node[box, fill=green!20, below=of a1] (a2) {Anchor 2};
+        \node[box, fill=green!20, below right=of t1] (a3) {Anchor 3};
+        \node[box, fill=green!20, below=of a3] (a4) {Anchor 4};
+        \node[box, fill=orange!20, below=2.5cm of t1] (gw1) {Gateway};
+        \node[box, fill=red!20, below=of gw1] (pc1) {PC/Logger};
+        
+        \draw[arrow] (t1) -- node[left, font=\tiny] {Broadcast} (a1);
+        \draw[arrow] (t1) -- node[right, font=\tiny] {Broadcast} (a3);
+        \draw[arrow] (t1) -- (a2);
+        \draw[arrow] (t1) -- (a4);
+        \draw[arrow] (a1) -- node[left, font=\tiny] {RSSI} (gw1);
+        \draw[arrow] (a2) -- (gw1);
+        \draw[arrow] (a3) -- node[right, font=\tiny] {RSSI} (gw1);
+        \draw[arrow] (a4) -- (gw1);
+        \draw[arrow] (gw1) -- node[right, font=\tiny] {Data} (pc1);
+    \end{tikzpicture}
+};
+
+% Phase 2: Multi-Target Sequential
+\node[phase, label={[font=\bfseries]above:Phase 2: Multi-Target Sequential}, right=4cm of phase1] (phase2) {
+    \begin{tikzpicture}[node distance=1.2cm and 1.5cm, box/.style={rectangle, draw, thick, minimum width=2cm, minimum height=0.8cm, align=center, font=\small}, arrow/.style={->, thick}]
+        \node[box, fill=blue!20] (t2a) {Target A\\Slot 0-100ms};
+        \node[box, fill=blue!20, below=0.4cm of t2a] (t2b) {Target B\\Slot 100-200ms};
+        \node[box, fill=blue!20, below=0.4cm of t2b] (t2c) {Target C\\Slot 200-300ms};
+        \node[box, fill=green!20, below=2.2cm of t2b] (an) {Anchors\\(All)};
+        \node[box, fill=orange!20, below=1.2cm of an] (gw2) {Gateway};
+        \node[box, fill=red!20, below=1.2cm of gw2] (pc2) {PC/Logger};
+        
+        % Curved arrows to avoid overlap
+        \draw[arrow] (t2a.south) to[out=-90, in=150] (an.north west);
+        \draw[arrow] (t2b.south) -- (an.north);
+        \draw[arrow] (t2c.south) to[out=-90, in=30] (an.north east);
+        \draw[arrow] (an) -- node[right, font=\tiny, align=center] {Tagged\\RSSI} (gw2);
+        \draw[arrow] (gw2) -- node[right, font=\tiny, align=center] {Multi-Target\\Data} (pc2);
+    \end{tikzpicture}
+};
+
+% Phase 3: All-Nodes Mesh
+\node[phase, label={[font=\bfseries]above:Phase 3: All-Nodes Mesh}, right=4cm of phase2] (phase3) {
+    \begin{tikzpicture}[node distance=2cm and 2cm]
+        \node[box, fill=purple!20] (n1) {Node 1};
+        \node[box, fill=purple!20, right=of n1] (n2) {Node 2};
+        \node[box, fill=purple!20, below=of n1] (n4) {Node 4};
+        \node[box, fill=purple!20, below=of n2] (n3) {Node 3};
+        \node[box, fill=orange!20, below=1.5cm of n4] (gw3) {Gateway};
+        
+        \draw[bidir] (n1) -- node[above, font=\tiny] {RSSI} (n2);
+        \draw[bidir] (n2) -- node[right, font=\tiny] {RSSI} (n3);
+        \draw[bidir] (n3) -- node[below, font=\tiny] {RSSI} (n4);
+        \draw[bidir] (n4) -- node[left, font=\tiny] {RSSI} (n1);
+        \draw[bidir] (n1) -- (n3);
+        \draw[bidir] (n2) -- (n4);
+        
+        \draw[arrow] (n1) -- (gw3);
+        \draw[arrow] (n2) -- (gw3);
+        \draw[arrow] (n3) -- (gw3);
+        \draw[arrow] (n4) -- (gw3);
+    \end{tikzpicture}
+};
+
+% Evolution arrows
+\draw[->, ultra thick, blue] ([xshift=0.5cm]phase1.east) -- ([xshift=-0.5cm]phase2.west) node[midway, above] {Evolution};
+\draw[->, ultra thick, blue] ([xshift=0.5cm]phase2.east) -- ([xshift=-0.5cm]phase3.west) node[midway, above] {Evolution};
+
+\end{tikzpicture}
